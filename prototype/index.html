@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>跃动 MoveMate · 原型设计</title>
+<style>
+:root{
+  --brand:#2563eb; --brand2:#0ea5a4; --ink:#1f2937; --sub:#6b7280;
+  --bg:#f4f6fa; --card:#fff; --line:#e5e9f0; --accent:#f97316; --ok:#16a34a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+.app{display:flex;min-height:100vh}
+/* 侧边栏 */
+.sidebar{width:228px;background:linear-gradient(180deg,#1e293b,#0f172a);color:#cbd5e1;padding:18px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 18px;color:#fff;font-weight:700;font-size:17px}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+.group{font-size:11px;color:#64748b;letter-spacing:.08em;margin:14px 8px 6px;text-transform:uppercase}
+.nav{display:block;width:100%;text-align:left;padding:9px 12px;border:none;background:none;color:#cbd5e1;border-radius:8px;cursor:pointer;font-size:13.5px;transition:.15s}
+.nav:hover{background:#263449;color:#fff}
+.nav.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-weight:600}
+/* 主区 */
+.main{flex:1;padding:22px 28px;max-width:1060px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.topbar h1{font-size:20px}
+.topbar .user{display:flex;align-items:center;gap:8px;color:var(--sub);font-size:13px}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600}
+.screen{display:none}
+.screen.active{display:block}
+/* 卡片 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:860px){.g4,.g3,.g2{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.g4,.g3,.g2{grid-template-columns:1fr}}
+.stat .k{font-size:12px;color:var(--sub)}
+.stat .v{font-size:26px;font-weight:700;margin-top:6px}
+.stat .d{font-size:11px;color:var(--ok);margin-top:4px}
+.sect-title{font-size:15px;font-weight:700;margin:22px 0 12px;display:flex;align-items:center;gap:8px}
+.sect-title::before{content:"";width:4px;height:16px;background:linear-gradient(var(--brand),var(--brand2));border-radius:2px}
+/* 表单 */
+label{display:block;font-size:13px;color:var(--sub);margin:14px 0 5px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;background:#fff}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.row{display:flex;gap:12px}
+.row>div{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 22px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--brand);color:var(--brand)}
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.tag-blue{background:#eff6ff;color:var(--brand)}
+.tag-teal{background:#f0fdfa;color:#0f766e}
+.tag-orange{background:#fff7ed;color:#c2410c}
+.tag-green{background:#f0fdf4;color:var(--ok)}
+/* 处方卡片 */
+.presc{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;border-left:4px solid var(--brand2)}
+.presc b{color:var(--ink)}
+.presc p{margin-top:5px;color:#374151;line-height:1.7}
+/* 聊天 */
+.chat{display:flex;flex-direction:column;height:560px}
+.chat-body{flex:1;overflow:auto;padding:8px 4px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:78%;padding:11px 14px;border-radius:14px;line-height:1.65;font-size:13.5px;white-space:pre-wrap}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-bottom-right-radius:4px}
+.msg.ai{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg .tool{display:block;margin-top:8px;padding:7px 10px;background:#f8fafc;border-radius:8px;font-family:Consolas,monospace;font-size:12px;color:var(--sub)}
+.chat-input{display:flex;gap:10px;margin-top:10px}
+.chat-input input{flex:1}
+.quick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.quick button{padding:7px 13px;border:1px solid var(--line);background:#fff;border-radius:20px;font-size:12.5px;cursor:pointer;color:var(--sub)}
+.quick button:hover{border-color:var(--brand);color:var(--brand)}
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}
+th{color:var(--sub);font-weight:600;font-size:12.5px}
+tr:hover td{background:#f8fafc}
+/* 进度条 */
+.bar{height:8px;background:#eef2f7;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));border-radius:6px}
+/* 步骤处理遮罩 */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:99}
+.overlay.show{display:flex}
+.panel{background:#fff;border-radius:16px;padding:30px 34px;width:420px;max-width:92vw}
+.panel h3{font-size:17px;margin-bottom:6px}
+.steps{margin-top:18px}
+.step{display:flex;align-items:center;gap:10px;padding:10px 0;color:#94a3b8;font-size:14px}
+.step .dot{width:22px;height:22px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.step.done{color:var(--ink)}
+.step.done .dot{border-color:var(--ok);background:var(--ok);color:#fff}
+.step.current{color:var(--ink);font-weight:600}
+.step.current .dot{border-color:var(--brand);color:var(--brand)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">跃</span>跃动 MoveMate</div>
+    <div class="group">用户端</div>
+    <button class="nav active" onclick="show('home')">首页</button>
+    <button class="nav" onclick="show('assess')">健康评估</button>
+    <button class="nav" onclick="show('plan')">运动处方</button>
+    <button class="nav" onclick="show('chat')">智能体问答</button>
+    <button class="nav" onclick="show('checkin')">打卡与进度</button>
+    <div class="group">管理端</div>
+    <button class="nav" onclick="show('admin-user')">用户管理</button>
+    <button class="nav" onclick="show('admin-kb')">知识库管理</button>
+    <button class="nav" onclick="show('admin-agent')">Agent 配置</button>
+    <button class="nav" onclick="show('admin-audit')">内容审核</button>
+    <button class="nav" onclick="show('admin-stats')">数据统计</button>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1 id="screen-title">首页</h1>
+      <div class="user"><span class="avatar">跃</span><span>跃动者_2026</span></div>
+    </div>
+
+    <!-- ============ 首页 ============ -->
+    <section class="screen active" id="home">
+      <div class="card" style="background:linear-gradient(135deg,#2563eb,#0ea5a4);color:#fff;border:none;margin-bottom:16px">
+        <div style="font-size:13px;opacity:.9">2026 年 11 月 9 日 · 星期一</div>
+        <h2 style="margin:8px 0 6px;font-size:22px">早上好，跃动者 👋</h2>
+        <p style="opacity:.92">今天也要动起来。你的第 3 周减脂计划已为你准备好。</p>
+        <button class="btn" style="background:#fff;color:var(--brand);margin-top:14px" onclick="show('plan')">查看今日训练</button>
+      </div>
+      <div class="grid g4">
+        <div class="card stat"><div class="k">连续打卡</div><div class="v">17 天</div><div class="d">↑ 连续 3 周</div></div>
+        <div class="card stat"><div class="k">本周训练</div><div class="v">4 / 5 次</div><div class="d">完成率 80%</div></div>
+        <div class="card stat"><div class="k">当前体重</div><div class="v">79.6 kg</div><div class="d">↓ 已减 2.4kg</div></div>
+        <div class="card stat"><div class="k">目标进度</div><div class="v">40%</div><div class="d">距目标还差 3.6kg</div></div>
+      </div>
+      <div class="sect-title">快捷入口</div>
+      <div class="grid g3">
+        <div class="card" style="text-align:center;cursor:pointer" onclick="show('assess')">
+          <div style="font-size:30px;margin-bottom:8px">🏃</div>
+          <b>生成新处方</b>
+          <p style="font-size:12.5px;color:var(--sub);margin-top:5px">填写档案，让智能体为你定制计划</p>
+        </div>
+        <div class="card" style="text-align:center;cursor:pointer" onclick="show('chat')">
+          <div style="font-size:30px;margin-bottom:8px">💬</div>
+          <b>咨询智能体</b>
+          <p style="font-size:12.5px;color:var(--sub);margin-top:5px">对计划有疑问？随时向「跃动处方师」提问</p>
+        </div>
+        <div class="card" style="text-align:center;cursor:pointer" onclick="show('checkin')">
+          <div style="font-size:30px;margin-bottom:8px">📈</div>
+          <b>打卡与进度</b>
+          <p style="font-size:12.5px;color:var(--sub);margin-top:5px">记录训练，查看身体变化曲线</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 健康评估 ============ -->
+    <section class="screen" id="assess">
+      <div class="card" style="max-width:720px">
+        <h3 style="font-size:17px;margin-bottom:4px">健康档案与评估</h3>
+        <p style="color:var(--sub);font-size:13px">请如实填写，系统将据此完成安全筛查与运动处方生成。</p>
+        <div class="row">
+          <div><label>性别</label><select id="gender"><option>男</option><option>女</option></select></div>
+          <div><label>年龄</label><input type="number" id="age" value="22"></div>
+        </div>
+        <div class="row">
+          <div><label>身高（cm）</label><input type="number" id="height" value="178"></div>
+          <div><label>体重（kg）</label><input type="number" id="weight" value="82"></div>
+        </div>
+        <div class="row">
+          <div><label>活动水平</label><select id="active"><option>久坐（办公室/学生）</option><option>轻度活动</option><option>中等活动</option></select></div>
+          <div><label>训练目标</label><select id="goal"><option>减脂（3 个月减 6kg）</option><option>增肌</option><option>体能提升</option><option>体测达标</option></select></div>
+        </div>
+        <label>PAR-Q 安全筛查（体力活动准备问卷）</label>
+        <div style="background:#f8fafc;border-radius:10px;padding:14px">
+          <label style="margin-top:0"><input type="checkbox" style="width:auto;margin-right:8px">我目前有心脏、血压或心血管方面的问题</label>
+          <label><input type="checkbox" style="width:auto;margin-right:8px">我有未痊愈的旧伤（如膝盖、腰、肩）</label>
+          <label><input type="checkbox" style="width:auto;margin-right:8px">我近期有过胸痛、眩晕或呼吸困难</label>
+        </div>
+        <label>旧伤 / 禁忌补充说明</label>
+        <textarea rows="2" id="injury" placeholder="例如：左膝有旧伤，跑步时偶有疼痛">左膝有旧伤，跑步时偶有疼痛</textarea>
+        <div style="margin-top:18px">
+          <button class="btn btn-primary" onclick="generatePlan()">✨ 交给智能体生成处方</button>
+          <span style="margin-left:12px;font-size:12px;color:var(--sub)">将经过安全筛查 → 知识检索 → 数值计算 → 处方生成</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 运动处方 ============ -->
+    <section class="screen" id="plan">
+      <div class="grid g3" style="margin-bottom:16px">
+        <div class="card stat"><div class="k">BMI</div><div class="v">25.9</div><div class="d">超重（24.0~27.9）</div></div>
+        <div class="card stat"><div class="k">TDEE</div><div class="v">2350 kcal</div><div class="d">每日总消耗</div></div>
+        <div class="card stat"><div class="k">日摄入目标</div><div class="v">1950 kcal</div><div class="d">缺口 400 kcal</div></div>
+      </div>
+      <div class="sect-title">第 3 周 · 个性化运动处方（FITT-VP）</div>
+      <div class="card">
+        <div class="presc"><b>🏃 有氧（低冲击 · 护膝）</b><p>椭圆机 / 快走 / 游泳，每周 3 次 × 30–40 分钟；强度 = 储备心率 60–70%（约 130–145 bpm）、RPE 5–6。</p></div>
+        <div class="presc"><b>🏋️ 抗阻（护膝强化）</b><p>深蹲、臀桥、核心，每周 2 次，每组 12–15 次；强化股四头肌以保护膝关节。</p></div>
+        <div class="presc"><b>🧘 柔韧与恢复</b><p>每日拉伸 5–10 分钟；每周至少 1–2 天完全休息。</p></div>
+        <div class="presc"><b>📈 进阶与安全</b><p>每 2 周时长 +10%、负荷 +5%；训练前热身 5–10 分钟；避免跳跃等高冲击动作；出现疼痛立即停止并就医。</p></div>
+      </div>
+      <div class="card" style="margin-top:14px;background:#f8fafc">
+        <p style="font-size:12.5px;color:var(--sub)">📚 <b>依据出处</b>：ACSM 运动处方指南 · 低冲击有氧替代原则 · 股四头肌强化保护膝关节（知识库条目 #K-042）</p>
+        <p style="font-size:12px;color:#c2410c;margin-top:8px">⚠️ 本计划为非医疗建议。你有未愈旧伤，若训练中疼痛加剧，请停止并咨询医生。</p>
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn btn-primary" onclick="show('chat')">💬 对计划有疑问？咨询智能体</button>
+        <button class="btn btn-ghost" style="margin-left:10px" onclick="show('checkin')">打卡今日训练</button>
+      </div>
+    </section>
+
+    <!-- ============ 智能体问答 ============ -->
+    <section class="screen" id="chat">
+      <div class="card">
+        <div class="quick">
+          <button onclick="chatAsk('为什么我的有氧要选低冲击动作？')">为什么选低冲击动作？</button>
+          <button onclick="chatAsk('可以把快走换成跳绳吗？')">能把快走换成跳绳吗？</button>
+          <button onclick="chatAsk('这个强度会不会太低？')">强度会不会太低？</button>
+        </div>
+        <div class="chat">
+          <div class="chat-body" id="chat-body">
+            <div class="msg ai">你好，我是<b>跃动处方师</b> 🤖，你的随身的运动处方助手。<br>关于你的计划，无论是「为什么这样安排」还是「能不能换动作」，都可以问我。我的回答都会标注知识依据。</div>
+          </div>
+          <div class="chat-input">
+            <input id="chat-input" placeholder="输入你的问题…" onkeydown="if(event.key==='Enter')chatSend()">
+            <button class="btn btn-primary" onclick="chatSend()">发送</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 打卡与进度 ============ -->
+    <section class="screen" id="checkin">
+      <div class="grid g2">
+        <div class="card">
+          <h3 style="font-size:16px;margin-bottom:14px">今日打卡</h3>
+          <label>训练内容</label>
+          <select><option>椭圆机 35 分钟（低冲击有氧）</option><option>深蹲 + 臀桥 + 核心</option><option>快走 40 分钟</option></select>
+          <label>今日体重（kg）</label>
+          <input type="number" value="79.6">
+          <label>训练感受</label>
+          <textarea rows="2" placeholder="膝盖感觉如何？累吗？"></textarea>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="alert('打卡成功！连续打卡 +1 天 ✅')">✅ 提交打卡</button>
+        </div>
+        <div class="card">
+          <h3 style="font-size:16px;margin-bottom:6px">体重变化曲线</h3>
+          <p style="font-size:12px;color:var(--sub);margin-bottom:14px">近 6 周 · 目标 76kg</p>
+          <svg viewBox="0 0 320 160" width="100%" height="170">
+            <line x1="30" y1="20" x2="30" y2="140" stroke="#e5e9f0"/>
+            <line x1="30" y1="140" x2="310" y2="140" stroke="#e5e9f0"/>
+            <line x1="30" y1="50" x2="310" y2="50" stroke="#eef2f7" stroke-dasharray="4"/>
+            <polyline points="30,48 76,60 122,72 168,88 214,102 260,116 306,126" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+            <circle cx="30" cy="48" r="4" fill="#2563eb"/><circle cx="306" cy="126" r="4" fill="#f97316"/>
+            <text x="30" y="150" font-size="9" fill="#6b7280">82kg</text>
+            <text x="306" y="150" font-size="9" fill="#f97316">79.6kg</text>
+          </svg>
+        </div>
+      </div>
+      <div class="sect-title">本周训练完成情况</div>
+      <div class="card">
+        <div class="grid g4">
+          <div><div class="k" style="color:var(--sub);font-size:12px">周一</div><div class="bar" style="margin-top:8px"><i style="width:100%"></i></div></div>
+          <div><div class="k" style="color:var(--sub);font-size:12px">周二</div><div class="bar" style="margin-top:8px"><i style="width:100%"></i></div></div>
+          <div><div class="k" style="color:var(--sub);font-size:12px">周三</div><div class="bar" style="margin-top:8px"><i style="width:60%"></i></div></div>
+          <div><div class="k" style="color:var(--sub);font-size:12px">周四</div><div class="bar" style="margin-top:8px"><i style="width:0%"></i></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 管理端：用户管理 ============ -->
+    <section class="screen" id="admin-user">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="font-size:16px">用户管理</h3>
+          <button class="btn btn-ghost">+ 新增用户</button>
+        </div>
+        <table>
+          <tr><th>ID</th><th>昵称</th><th>角色</th><th>目标</th><th>注册时间</th><th>状态</th></tr>
+          <tr><td>1001</td><td>跃动者_2026</td><td>用户</td><td>减脂</td><td>2026-10-12</td><td><span class="tag tag-green">正常</span></td></tr>
+          <tr><td>1002</td><td>小马爱跑步</td><td>用户</td><td>体能</td><td>2026-10-15</td><td><span class="tag tag-green">正常</span></td></tr>
+          <tr><td>1003</td><td>Kevin</td><td>用户</td><td>增肌</td><td>2026-10-20</td><td><span class="tag tag-orange">待评估</span></td></tr>
+          <tr><td>9001</td><td>admin</td><td>管理员</td><td>—</td><td>2026-09-01</td><td><span class="tag tag-blue">管理员</span></td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 管理端：知识库 ============ -->
+    <section class="screen" id="admin-kb">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="font-size:16px">知识库管理</h3>
+          <button class="btn btn-primary">+ 上传文档</button>
+        </div>
+        <table>
+          <tr><th>文档</th><th>分类</th><th>切片数</th><th>向量化</th><th>更新时间</th></tr>
+          <tr><td>ACSM 运动处方指南（节选）</td><td>处方学</td><td>128</td><td><span class="tag tag-green">已就绪</span></td><td>2026-11-02</td></tr>
+          <tr><td>中国居民膳食指南 2022</td><td>能量代谢</td><td>96</td><td><span class="tag tag-green">已就绪</span></td><td>2026-11-01</td></tr>
+          <tr><td>国家学生体质健康标准</td><td>数据标准</td><td>54</td><td><span class="tag tag-green">已就绪</span></td><td>2026-10-30</td></tr>
+          <tr><td>动作库 · 下肢训练</td><td>动作库</td><td>210</td><td><span class="tag tag-orange">处理中</span></td><td>2026-11-08</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 管理端：Agent 配置 ============ -->
+    <section class="screen" id="admin-agent">
+      <div class="card" style="max-width:760px">
+        <h3 style="font-size:16px;margin-bottom:14px">Agent 配置</h3>
+        <label>系统提示词（角色 + 约束 + 护栏）</label>
+        <textarea rows="5">你是「跃动处方师」，一名面向大众健身的认证运动处方师助手。语气专业但小白友好。硬约束：必须先完成评估与安全筛查才能出计划；严禁越过医疗边界，伤病问题明确引导就医；结论必须注明知识出处。输出严格按 FITT-VP 结构化，并附禁忌与注意事项。</textarea>
+        <div class="row">
+          <div><label>模型</label><select><option>GPT-4o（当前）</option><option>Claude 3.5</option><option>Kimi</option><option>文心一言 4.0</option></select></div>
+          <div><label>温度</label><select><option>0.3（推荐）</option><option>0.5</option><option>0.7</option></select></div>
+        </div>
+        <label>已注册工具（Function Calling）</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="tag tag-blue">calc_tdee</span>
+          <span class="tag tag-blue">calc_bmi</span>
+          <span class="tag tag-blue">heart_rate_zone</span>
+          <span class="tag tag-blue">training_volume</span>
+          <span class="tag tag-blue">fitness_score</span>
+          <span class="tag tag-teal">plan_generator</span>
+        </div>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="alert('Agent 配置已保存 ✅')">保存配置</button>
+      </div>
+    </section>
+
+    <!-- ============ 管理端：内容审核 ============ -->
+    <section class="screen" id="admin-audit">
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:14px">问答内容审核</h3>
+        <table>
+          <tr><th>时间</th><th>用户</th><th>问题摘要</th><th>风险</th><th>操作</th></tr>
+          <tr><td>11-09 08:12</td><td>跃动者_2026</td><td>膝盖疼还能继续练吗？</td><td><span class="tag tag-orange">医疗边界</span></td><td><button class="btn btn-ghost" style="padding:6px 12px">查看</button></td></tr>
+          <tr><td>11-09 08:05</td><td>小马爱跑步</td><td>深蹲动作标准吗？</td><td><span class="tag tag-green">正常</span></td><td><button class="btn btn-ghost" style="padding:6px 12px">查看</button></td></tr>
+          <tr><td>11-08 21:40</td><td>Kevin</td><td>为什么我的计划没安排跑步？</td><td><span class="tag tag-green">正常</span></td><td><button class="btn btn-ghost" style="padding:6px 12px">查看</button></td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 管理端：数据统计 ============ -->
+    <section class="screen" id="admin-stats">
+      <div class="grid g4" style="margin-bottom:16px">
+        <div class="card stat"><div class="k">注册用户</div><div class="v">1,286</div><div class="d">↑ 本周 +86</div></div>
+        <div class="card stat"><div class="k">生成处方</div><div class="v">2,431</div><div class="d">↑ 本周 +152</div></div>
+        <div class="card stat"><div class="k">智能体问答</div><div class="v">8,920</div><div class="d">平均满意度 4.7</div></div>
+        <div class="card stat"><div class="k">知识库条目</div><div class="v">488</div><div class="d">覆盖 8 个知识域</div></div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:14px">近 7 日问答量</h3>
+        <svg viewBox="0 0 480 160" width="100%" height="170">
+          <line x1="30" y1="20" x2="30" y2="140" stroke="#e5e9f0"/>
+          <line x1="30" y1="140" x2="460" y2="140" stroke="#e5e9f0"/>
+          <polyline points="50,100 110,84 170,90 230,60 290,66 350,40 410,52" fill="none" stroke="#0ea5a4" stroke-width="2.5"/>
+          <circle cx="350" cy="40" r="4" fill="#f97316"/>
+        </svg>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 生成处方处理遮罩 -->
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h3>跃动处方师正在为你定制处方…</h3>
+    <p style="color:var(--sub);font-size:13px">智能体正在执行多步任务流程</p>
+    <div class="steps" id="steps">
+      <div class="step current" id="st1"><span class="dot">1</span>信息评估：采集身体数据</div>
+      <div class="step" id="st2"><span class="dot">2</span>安全筛查：PAR-Q 与旧伤排查</div>
+      <div class="step" id="st3"><span class="dot">3</span>知识检索：RAG 检索运动科学知识库</div>
+      <div class="step" id="st4"><span class="dot">4</span>数值计算：TDEE / BMI / 心率区间</div>
+      <div class="step" id="st5"><span class="dot">5</span>处方生成：编排 FITT-VP 计划</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const titles={home:'首页',assess:'健康评估',plan:'运动处方',chat:'智能体问答',checkin:'打卡与进度','admin-user':'用户管理','admin-kb':'知识库管理','admin-agent':'Agent 配置','admin-audit':'内容审核','admin-stats':'数据统计'};
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  document.querySelector('.nav[onclick="show(\''+id+'\')"]').classList.add('active');
+  document.getElementById('screen-title').textContent=titles[id];
+}
+function generatePlan(){
+  const overlay=document.getElementById('overlay');
+  overlay.classList.add('show');
+  const steps=['st1','st2','st3','st4','st5'];
+  let i=0;
+  function tick(){
+    if(i>0){document.getElementById(steps[i-1]).classList.remove('current');document.getElementById(steps[i-1]).classList.add('done');}
+    if(i<steps.length){
+      document.getElementById(steps[i]).classList.add('current');
+      i++;
+      setTimeout(tick,700);
+    }else{
+      setTimeout(()=>{overlay.classList.remove('show');show('plan');},400);
+    }
+  }
+  tick();
+}
+function chatSend(){
+  const inp=document.getElementById('chat-input');
+  const q=inp.value.trim(); if(!q)return;
+  inp.value='';
+  chatAsk(q);
+}
+function chatAsk(q){
+  const body=document.getElementById('chat-body');
+  const u=document.createElement('div');u.className='msg user';u.textContent=q;body.appendChild(u);
+  const a=document.createElement('div');a.className='msg ai';
+  let reply;
+  if(q.includes('低冲击')){
+    reply='因为你在评估中标注了「左膝旧伤」。跑步、跳绳、HIIT 都属于高冲击动作，会加剧膝关节负担。\n\n根据运动医学的「低冲击替代原则」，我把你的有氧替换为椭圆机 / 快走 / 游泳，并用抗阻强化股四头肌来保护膝关节。';
+    a.innerHTML=reply+'<span class="tool">🔧 RAG 检索命中：知识库 #K-042「低冲击有氧替代原则」</span>';
+  }else if(q.includes('跳绳')){
+    reply='不建议把快走换成跳绳。跳绳是跳跃类高冲击动作，落地冲击约是体重的 3~5 倍，对你有旧伤的左膝风险较高。\n\n建议维持低冲击有氧（椭圆机/快走/游泳），等膝关节强化后再考虑进阶。';
+    a.innerHTML=reply+'<span class="tool">🔧 工具调用：heart_rate_zone → 目标区间 130~145 bpm（储备心率 60–70%）</span>';
+  }else if(q.includes('强度')){
+    reply='你当前的强度是储备心率 60–70%（约 130–145 bpm）、RPE 5–6，属于「中等强度」，对减脂和心肺提升是科学且安全的选择。\n\n新手期从 60% 起步，比一上来就高强度更能坚持，也更利于身体恢复。每 2 周会按 10% 渐进上调。';
+    a.innerHTML=reply+'<span class="tool">🔧 工具调用：heart_rate_zone + training_volume（渐进超负荷）</span>';
+  }else{
+    reply='这是一个好问题。基于你的健康档案（22 岁男、BMI 25.9、目标减脂、左膝旧伤），我会从「安全性、有效性、可持续性」三方面为你解释安排。\n\n你也可以直接问我：为什么这样安排、能否换动作、强度是否合适。';
+    a.innerHTML=reply+'<span class="tool">🔧 已结合你的健康档案（HealthProfile）与当前处方（ExercisePlan）</span>';
+  }
+  body.appendChild(a);
+  body.scrollTop=body.scrollHeight;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+flowchart LR
+    UI["用户界面<br/>:UI"] -->|"1: 提交档案与目标"| ORCH["Agent 编排器<br/>:Orchestrator"]
+    ORCH -->|"2: 请求评估"| AS["评估器<br/>:Assessor"]
+    ORCH -->|"3: 检索知识"| RAG["检索器<br/>:RAGService"]
+    ORCH -->|"4: 数值计算"| TOOL["计算工具<br/>:Calculator"]
+    ORCH -->|"5: 生成处方"| GEN["处方生成器<br/>:Generator"]
+    GEN -->|"6: 持久化"| DB["数据仓库<br/>:Repository"]
+    DB -->|"7: 返回结果"| ORCH
+    ORCH -->|"8: 渲染展示"| UI

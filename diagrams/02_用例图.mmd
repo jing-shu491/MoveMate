@@ -1,0 +1,30 @@
+flowchart LR
+    U(("健身用户"))
+    M(("管理员"))
+
+    subgraph SYS["跃动 MoveMate 系统"]
+        direction TB
+        UC1(["注册 / 登录"])
+        UC2(["健康档案与评估"])
+        UC3(["生成运动处方"])
+        UC4(["智能体问答"])
+        UC5(["打卡与进度追踪"])
+        UC6(["动态计划调整"])
+        UC7(["用户管理"])
+        UC8(["知识库管理"])
+        UC9(["Agent 配置"])
+        UC10(["问答内容审核"])
+    end
+
+    U --- UC1
+    U --- UC2
+    U --- UC3
+    U --- UC4
+    U --- UC5
+    U --- UC6
+    M --- UC7
+    M --- UC8
+    M --- UC9
+    M --- UC10
+    UC3 -.-> UC4
+    UC6 -.-> UC4

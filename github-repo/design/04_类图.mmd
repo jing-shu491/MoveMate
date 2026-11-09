@@ -1,0 +1,87 @@
+classDiagram
+    class User {
+        +Long id
+        +String username
+        +String role
+    }
+    class HealthProfile {
+        +Long id
+        +int age
+        +String goal
+        +String parqResult
+    }
+    class ExercisePlan {
+        +Long id
+        +String fittVpJson
+        +String status
+    }
+    class PlanItem {
+        +Long id
+        +String type
+        +String detail
+    }
+    class WorkoutLog {
+        +Long id
+        +Date logAt
+        +float weightKg
+    }
+    class ChatSession {
+        +Long id
+        +String title
+    }
+    class ChatMessage {
+        +Long id
+        +String role
+        +String content
+    }
+    class KnowledgeDoc {
+        +Long id
+        +String title
+        +String category
+    }
+    class KnowledgeChunk {
+        +Long id
+        +String content
+        +String embedding
+    }
+    class Action {
+        +Long id
+        +String name
+        +String muscleGroup
+    }
+    class ToolLog {
+        +Long id
+        +String toolName
+        +String result
+    }
+    class AgentConfig {
+        +Long id
+        +String systemPrompt
+        +String model
+    }
+    class AgentOrchestrator {
+        +run(task)
+        +callTool(name, args)
+    }
+    class RAGService {
+        +retrieve(query)
+        +embed(text)
+    }
+    class ToolRegistry {
+        +register(tool)
+        +execute(name, args)
+    }
+
+    User "1" --> "1" HealthProfile : 拥有
+    User "1" --> "0..*" ExercisePlan : 生成
+    ExercisePlan "1" --> "1..*" PlanItem : 包含
+    User "1" --> "0..*" WorkoutLog : 打卡
+    PlanItem "1" --> "0..*" WorkoutLog : 对应
+    User "1" --> "0..*" ChatSession : 发起
+    ChatSession "1" --> "0..*" ChatMessage : 包含
+    ChatMessage "1" --> "0..*" ToolLog : 触发
+    KnowledgeDoc "1" --> "0..*" KnowledgeChunk : 切片
+    PlanItem "0..*" --> "0..*" Action : 选用
+    ChatMessage --> AgentOrchestrator : 触发
+    AgentOrchestrator --> RAGService : 调用
+    AgentOrchestrator --> ToolRegistry : 调度

@@ -1,0 +1,15 @@
+flowchart TD
+    START([开始]) --> INPUT[/用户填写健康档案与目标/]
+    INPUT --> SCREEN{安全筛查<br/>PAR-Q+ 与禁忌排查}
+    SCREEN -- 存在高风险 --> RISK[/提示就医 · 终止出计划/] --> END1([结束])
+    SCREEN -- 通过 --> SMART[/目标 SMART 化<br/>合理期望管理/]
+    SMART --> RETRIEVE[/RAG 检索领域知识<br/>运动科学知识库/]
+    RETRIEVE --> CALC[/工具计算<br/>TDEE · BMI · 心率区间/]
+    CALC --> GEN[/LLM 生成 FITT-VP 运动处方/]
+    GEN --> CONFIRM{用户确认计划}
+    CONFIRM -- 提出修改 --> RETRIEVE
+    CONFIRM -- 接受 --> CHECKIN[/执行打卡<br/>记录训练与身体数据/]
+    CHECKIN --> FEEDBACK[/采集反馈<br/>体重 · 围度 · 体测/]
+    FEEDBACK --> ADJUST{到达周期<br/>或达标需调整?}
+    ADJUST -- 是 --> RETRIEVE
+    ADJUST -- 否 --> CHECKIN

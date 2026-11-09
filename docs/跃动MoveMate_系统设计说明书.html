@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>跃动MoveMate 系统设计说明书</title>
+<link rel="stylesheet" href="doc-style.css">
+</head>
+<body>
+
+<!-- ===================== 封面 ===================== -->
+<div class="cover">
+  <div class="doc-type">软 件 设 计 文 档</div>
+  <h1>跃动 MoveMate<br>系统设计说明书</h1>
+  <div class="sub">面向健身入门人群的个性化运动计划智能体（Web 应用）</div>
+  <div class="meta">
+    <div><b>文档编号</b>：MoveMate-SDD-002</div>
+    <div><b>项目名称</b>：跃动 MoveMate · 个性化运动计划智能体</div>
+    <div><b>团队名称</b>：跃动 MoveMate</div>
+    <div><b>文档版本</b>：V1.0</div>
+    <div><b>编写日期</b>：2026 年 11 月</div>
+    <div><b>密　　级</b>：内部</div>
+  </div>
+</div>
+
+<!-- ===================== 修订记录 ===================== -->
+<h1>修订记录</h1>
+<table>
+  <tr><th>版本</th><th>日期</th><th>修订说明</th><th>修订人</th><th>审核人</th></tr>
+  <tr><td>V0.1</td><td>2026-10-26</td><td>初稿：架构框架与模块划分</td><td>（待填）</td><td>（待填）</td></tr>
+  <tr><td>V0.9</td><td>2026-11-05</td><td>补充 UML 图、Agent 集成、接口设计</td><td>（待填）</td><td>（待填）</td></tr>
+  <tr><td>V1.0</td><td>2026-11-08</td><td>评审定稿</td><td>（待填）</td><td>（待填）</td></tr>
+</table>
+
+<!-- ===================== 目录 ===================== -->
+<div class="pagebreak"></div>
+<h1>目录</h1>
+<ul>
+  <li>1 引言</li>
+  <li>2 总体设计</li>
+  <li>3 需求分析与用例建模</li>
+  <li>4 业务流程设计</li>
+  <li>5 领域 Agent 设计与集成</li>
+  <li>6 系统结构设计（类图）</li>
+  <li>7 核心流程时序与协作设计</li>
+  <li>8 接口设计</li>
+  <li>9 运行设计</li>
+  <li>10 出错处理与安全设计</li>
+  <li>11 尚待解决的问题</li>
+</ul>
+
+<!-- ===================== 1 引言 ===================== -->
+<div class="pagebreak"></div>
+<h1>1 引言</h1>
+
+<h2>1.1 编写目的</h2>
+<p>本文档是《跃动 MoveMate》软件系统的概要设计说明书，在第一次作业《选题报告与需求分析》的基础上，自顶向下地描述系统的总体架构、功能模块、运行逻辑与数据结构。文档面向软件工程课程评审教师、助教以及项目组全体成员，作为后续详细设计、编码实现与测试的输入依据。</p>
+<p>文档遵循《软件设计说明书》（GB/T 8567-2006）的规范文本结构，采用<strong>分层描述</strong>方式：随层级深入，描述粒度由系统级架构逐步细化到模块、类与接口，并对全部缩写进行事先定义。</p>
+
+<h2>1.2 项目背景</h2>
+<p>本项目定位于「大众健身」领域。专业运动指导（私教、运动医学门诊）成本高、可及性低，而大众（尤其是健身入门者）普遍存在「不知道怎么开始、不知道怎么练、怕受伤、难以坚持」的痛点。通用大模型虽能对话，却缺乏领域约束、工具计算与安全筛查，无法给出可执行、可追踪、可动态调整的运动处方。</p>
+<p>跃动 MoveMate 以<strong>领域 Agent</strong>为核心，将运动科学知识（FITT-VP、强度量化、安全筛查等）结构化组织为知识底座，通过「检索增强生成（RAG）+ 工具调用（Function Calling）+ 多步流程编排」，为每位用户生成个性化、安全、可持续的运动处方，并提供打卡追踪与动态调整，形成「评估—计划—追踪—调整」的完整闭环。</p>
+
+<h2>1.3 术语与缩写定义</h2>
+<table class="grid">
+  <tr><th>缩写 / 术语</th><th class="left">全称与说明</th></tr>
+  <tr><td class="abbr">Agent</td><td class="left">智能体；基于大语言模型、具备工具调用与流程编排能力的自治软件单元。</td></tr>
+  <tr><td class="abbr">LLM</td><td class="left">Large Language Model，大语言模型。</td></tr>
+  <tr><td class="abbr">RAG</td><td class="left">Retrieval-Augmented Generation，检索增强生成；先检索领域知识再生成，提升准确性与可溯源。</td></tr>
+  <tr><td class="abbr">FITT-VP</td><td class="left">Frequency / Intensity / Time / Type / Volume / Progression，运动处方六要素（频率/强度/时间/类型/总量/进阶）。</td></tr>
+  <tr><td class="abbr">PAR-Q</td><td class="left">Physical Activity Readiness Questionnaire，体力活动准备问卷，用于运动前安全筛查。</td></tr>
+  <tr><td class="abbr">TDEE</td><td class="left">Total Daily Energy Expenditure，每日总能量消耗。</td></tr>
+  <tr><td class="abbr">BMR</td><td class="left">Basal Metabolic Rate，基础代谢率。</td></tr>
+  <tr><td class="abbr">BMI</td><td class="left">Body Mass Index，身体质量指数。</td></tr>
+  <tr><td class="abbr">RPE</td><td class="left">Rating of Perceived Exertion，主观疲劳量表。</td></tr>
+  <tr><td class="abbr">MET</td><td class="left">Metabolic Equivalent，代谢当量。</td></tr>
+  <tr><td class="abbr">SMART</td><td class="left">Specific / Measurable / Achievable / Relevant / Time-bound，目标设定原则。</td></tr>
+  <tr><td class="abbr">API</td><td class="left">Application Programming Interface，应用程序编程接口。</td></tr>
+  <tr><td class="abbr">UML</td><td class="left">Unified Modeling Language，统一建模语言。</td></tr>
+  <tr><td class="abbr">ER</td><td class="left">Entity-Relationship，实体-关系（模型）。</td></tr>
+  <tr><td class="abbr">ORM</td><td class="left">Object-Relational Mapping，对象关系映射。</td></tr>
+  <tr><td class="abbr">MVP</td><td class="left">Minimum Viable Product，最小可行产品。</td></tr>
+  <tr><td class="abbr">SRS</td><td class="left">Software Requirements Specification，软件需求规格说明书。</td></tr>
+</table>
+
+<h2>1.4 参考资料</h2>
+<ul>
+  <li>GB/T 8567-2006《计算机软件文档编制规范》——软件设计说明书章节；</li>
+  <li>《跃动 MoveMate 选题报告与需求分析》（第一次团队作业，内部文档）；</li>
+  <li>ACSM《运动测试与运动处方指南》、PAR-Q+ 体力活动准备问卷；</li>
+  <li>《中国居民膳食指南（2022）》《国家学生体质健康标准》；</li>
+  <li>UML 2.5 规范（OMG）；GB/T 9385《计算机软件需求规格说明规范》。</li>
+</ul>
+
+<!-- ===================== 2 总体设计 ===================== -->
+<div class="pagebreak"></div>
+<h1>2 总体设计</h1>
+
+<h2>2.1 系统目标与需求概述</h2>
+<p>依据第一次作业需求分析，系统需实现的核心功能模块及优先级如下：</p>
+<table class="grid">
+  <tr><th>优先级</th><th>功能模块</th><th class="left">说明</th></tr>
+  <tr><td>P0</td><td>用户档案与评估</td><td class="left">信息采集、PAR-Q 安全筛查、体测自评</td></tr>
+  <tr><td>P0</td><td>计划生成引擎</td><td class="left">RAG + 工具 + 编排，输出 FITT-VP 运动处方</td></tr>
+  <tr><td>P1</td><td>计划解释与问答</td><td class="left">对计划「为什么/出处/换动作」的可解释对话</td></tr>
+  <tr><td>P1</td><td>训练打卡与追踪</td><td class="left">打卡、体重/围度/体测记录、进度曲线</td></tr>
+  <tr><td>P1</td><td>动态调整</td><td class="left">基于反馈数据自动重算、更新计划</td></tr>
+  <tr><td>P2</td><td>知识库管理</td><td class="left">动作库、指南条目的增删改查（管理端）</td></tr>
+</table>
+<p>关键非功能需求：计划生成响应 &lt; 10 秒；强度计算可溯源；全程标注「非医疗建议」；健康数据加密、最小化收集；移动端友好；模型与平台可替换；高危筛查结果引导就医。</p>
+
+<h2>2.2 总体架构（自顶向下分层）</h2>
+<p>系统采用分层架构，自上而下分为<strong>表现层、接口层、应用层、Agent 编排层、数据层</strong>五层。分层使得每一层职责单一、可独立替换，Agent 编排层作为核心，向下统一调度领域知识与工具。</p>
+<div class="figure-wide">
+  <img src="../diagrams/svg/01_架构图.svg">
+  <div class="figcap">图 2-1 跃动 MoveMate 系统总体架构图</div>
+</div>
+
+<h3>2.2.1 表现层</h3>
+<p>包含用户端与管理端两个 Web 应用：用户端面向健身用户，提供档案评估、处方生成、问答、打卡与进度曲线等交互；管理端面向管理员，提供用户管理、知识库管理、Agent 配置、内容审核与数据统计。前端采用 Vue 3，响应式适配移动端。</p>
+
+<h3>2.2.2 接口层</h3>
+<p>以 API Gateway 统一对外提供 RESTful API 与 WebSocket。普通业务走 REST；智能体对话因需流式输出，采用 WebSocket 或 SSE 长连接推送 token，提升交互体验。</p>
+
+<h3>2.2.3 应用层</h3>
+<p>按业务域拆分为五个服务：用户服务（认证/档案/评估）、计划服务（处方生成/动态调整）、追踪服务（打卡/进度曲线）、知识库服务（文档/动作库）、管理服务（用户/审核/统计）。各服务通过内部接口协作。</p>
+
+<h3>2.2.4 Agent 编排层（核心）</h3>
+<p>系统核心智能体所在层，由编排器统一调度 RAG 检索、工具调用、会话记忆与 LLM 接入。详见第 5 章。</p>
+
+<h3>2.2.5 数据层</h3>
+<p>PostgreSQL 存业务数据（用户、计划、打卡、会话等）；向量库（pgvector / Milvus）存知识切片向量；Redis 存会话缓存；对象存储存课件与动作图片。详见《数据库设计说明书》。</p>
+
+<h2>2.3 功能模块划分</h2>
+<p>模块划分与「功能需求—程序单元」的对应关系如下：</p>
+<table>
+  <tr><th>功能需求</th><th>所属服务</th><th>主要程序单元（模块）</th></tr>
+  <tr><td>用户档案与评估</td><td>用户服务</td><td>AuthModule、ProfileModule、AssessmentModule</td></tr>
+  <tr><td>计划生成引擎</td><td>计划服务 + Agent 编排层</td><td>PlanModule、AgentOrchestrator、RAGService、ToolRegistry</td></tr>
+  <tr><td>计划解释与问答</td><td>计划服务 + Agent 编排层</td><td>ChatModule、AgentOrchestrator、RAGService</td></tr>
+  <tr><td>训练打卡与追踪</td><td>追踪服务</td><td>CheckinModule、ProgressModule</td></tr>
+  <tr><td>动态调整</td><td>计划服务</td><td>AdjustModule、AgentOrchestrator</td></tr>
+  <tr><td>知识库管理</td><td>知识库服务</td><td>KnowledgeModule、ActionModule</td></tr>
+  <tr><td>用户/审核/统计</td><td>管理服务</td><td>AdminUserModule、AuditModule、StatsModule</td></tr>
+</table>
+
+<h2>2.4 技术选型</h2>
+<table>
+  <tr><th>层</th><th>技术方案</th><th class="left">说明</th></tr>
+  <tr><td>前端</td><td>Vue 3 + Vite + Element Plus</td><td class="left">响应式，移动端友好，组件化开发</td></tr>
+  <tr><td>后端</td><td>Python FastAPI（或 Node.js）</td><td class="left">异步、类型安全，便于与 AI 生态集成</td></tr>
+  <tr><td>Agent 编排</td><td>自建编排（LangChain + Function Calling）或 Dify/扣子</td><td class="left">可视化编排 + 知识库 + 工具，便于快速上线</td></tr>
+  <tr><td>模型</td><td>通过 API 接入（GPT/Claude/Kimi/文心一言）</td><td class="left">模型可替换，与业务解耦</td></tr>
+  <tr><td>数据库</td><td>PostgreSQL + pgvector</td><td class="left">业务数据 + 向量检索一体</td></tr>
+  <tr><td>缓存</td><td>Redis</td><td class="left">会话缓存、限流</td></tr>
+  <tr><td>对象存储</td><td>OSS（云对象存储）</td><td class="left">课件、动作图片等静态资源</td></tr>
+  <tr><td>部署</td><td>云服务器 + Docker</td><td class="left">容器化，提供访问地址与测试方式</td></tr>
+</table>
+
+<h2>2.5 运行环境</h2>
+<ul>
+  <li><strong>客户端</strong>：现代浏览器（Chrome / Edge / Safari），支持移动端；</li>
+  <li><strong>服务器端</strong>：Linux 云服务器，≥ 2 核 4 GB，Docker 运行；</li>
+  <li><strong>依赖服务</strong>：PostgreSQL 14+、Redis 6+、向量库、LLM API 密钥、OSS 桶。</li>
+</ul>
+
+<!-- ===================== 3 用例建模 ===================== -->
+<div class="pagebreak"></div>
+<h1>3 需求分析与用例建模</h1>
+
+<h2>3.1 用例图</h2>
+<div class="figure">
+  <img src="../diagrams/svg/02_用例图.svg" style="max-width:85%;">
+  <div class="figcap">图 3-1 系统用例图</div>
+</div>
+
+<h2>3.2 关键用例描述</h2>
+<h3>用例 UC-03：生成运动处方</h3>
+<table>
+  <tr><th style="width:28mm;">要素</th><th>内容</th></tr>
+  <tr><td>参与者</td><td>健身用户</td></tr>
+  <tr><td>前置条件</td><td>用户已登录并完成健康档案填写</td></tr>
+  <tr><td>主流程</td><td>① 用户填写身高/体重/年龄/目标/运动史/禁忌 → ② 系统执行 PAR-Q 安全筛查 → ③ 若通过，RAG 检索知识、工具计算数值、LLM 生成 FITT-VP 处方 → ④ 用户确认或修改 → ⑤ 处方保存并展示</td></tr>
+  <tr><td>异常流程</td><td>筛查出高风险 → 提示就医并终止；工具/模型调用失败 → 重试或降级提示</td></tr>
+  <tr><td>后置条件</td><td>生成结构化处方，写入 ExercisePlan 与 PlanItem</td></tr>
+</table>
+
+<h3>用例 UC-04：智能体问答</h3>
+<table>
+  <tr><th style="width:28mm;">要素</th><th>内容</th></tr>
+  <tr><td>参与者</td><td>健身用户</td></tr>
+  <tr><td>前置条件</td><td>用户已登录</td></tr>
+  <tr><td>主流程</td><td>① 用户就当前计划提问（为什么这样安排/能否换动作）→ ② 系统基于会话上下文 + RAG 检索 → ③ LLM 生成带出处的回答 → ④ 流式返回并记录会话与工具日志</td></tr>
+  <tr><td>异常流程</td><td>问题涉及医疗诊断 → 明确引导就医，不越界</td></tr>
+  <tr><td>后置条件</td><td>写入 ChatMessage，附引用出处</td></tr>
+</table>
+
+<h3>用例 UC-08：知识库管理（管理端）</h3>
+<table>
+  <tr><th style="width:28mm;">要素</th><th>内容</th></tr>
+  <tr><td>参与者</td><td>管理员</td></tr>
+  <tr><td>前置条件</td><td>管理员已登录并具备权限</td></tr>
+  <tr><td>主流程</td><td>① 上传/编辑领域文档（指南、教材）→ ② 系统切片并生成向量 → ③ 维护动作库条目 → ④ 审核问答记录</td></tr>
+  <tr><td>后置条件</td><td>知识库与向量索引更新，可被 RAG 检索命中</td></tr>
+</table>
+
+<!-- ===================== 4 业务流程设计 ===================== -->
+<div class="pagebreak"></div>
+<h1>4 业务流程设计</h1>
+<p>系统核心业务为「个性化运动处方生成与动态调整」。以活动图描述其业务流程，覆盖从信息采集、安全筛查到闭环调整的完整路径：</p>
+<div class="figure">
+  <img src="../diagrams/svg/03_活动图.svg" style="max-width:72%;">
+  <div class="figcap">图 4-1 运动处方生成与调整业务活动图</div>
+</div>
+<p>流程要点：</p>
+<ul>
+  <li><strong>安全护栏前置</strong>：PAR-Q 筛查在任何处方生成前完成，存在高风险项（如心血管症状、未愈旧伤）即引导就医并终止，确保「非医疗建议」边界不越界；</li>
+  <li><strong>知识 + 计算 + 生成分离</strong>：RAG 负责「专业依据」，工具负责「数值计算」，LLM 负责「结构化表达」，三者解耦、可分别替换；</li>
+  <li><strong>闭环反馈</strong>：打卡与身体数据回流后按周期重算，实现计划的动态演进。</li>
+</ul>
+
+<!-- ===================== 5 领域 Agent 设计 ===================== -->
+<div class="pagebreak"></div>
+<h1>5 领域 Agent 设计与集成</h1>
+
+<h2>5.1 Agent 总体设计</h2>
+<p>智能体命名为「<strong>跃动处方师</strong>」，定位为「认证运动处方师助手」，面向大众健身、语气专业但小白友好。其设计遵循三个层次：</p>
+<ul>
+  <li><strong>角色</strong>：运动处方师助手，基于运动科学领域知识服务大众；</li>
+  <li><strong>硬约束（护栏）</strong>：必须先完成评估与安全筛查才能出计划；严禁越过医疗边界（伤病问题明确引导就医）；结论注明依据出处；</li>
+  <li><strong>输出规范</strong>：严格按 FITT-VP 结构化输出，并附禁忌与注意事项。</li>
+</ul>
+
+<h2>5.2 领域知识（RAG 知识库）</h2>
+<p>Agent 的专业性来自对以下运动科学知识的<strong>结构化组织</strong>，这些知识是「领域定制」的底座：</p>
+<table>
+  <tr><th>知识域</th><th class="left">内容</th></tr>
+  <tr><td>运动处方学</td><td class="left">FITT-VP 六要素，处方基本骨架</td></tr>
+  <tr><td>强度量化</td><td class="left">储备心率法、卡氏公式、RPE、MET 代谢当量</td></tr>
+  <tr><td>能量代谢</td><td class="left">BMR、TDEE、热量缺口、宏量营养素配比</td></tr>
+  <tr><td>训练类型</td><td class="left">有氧/抗阻/柔韧/平衡/神经肌肉训练</td></tr>
+  <tr><td>进阶原则</td><td class="left">渐进超负荷、周期化、恢复与超量恢复</td></tr>
+  <tr><td>安全筛查</td><td class="left">PAR-Q+、运动禁忌、损伤风险、慢病注意事项</td></tr>
+  <tr><td>数据标准</td><td class="left">BMI、体脂率、国家学生体质健康标准评分</td></tr>
+  <tr><td>动作库</td><td class="left">动作规范、目标肌群、常见错误与替代动作</td></tr>
+</table>
+<p>知识源包括《ACSM 运动处方指南》《中国居民膳食指南》《国家学生体质健康标准》、运动医学入门教材与动作库。文档经切片后写入向量库，检索时<strong>标注出处</strong>。</p>
+
+<h2>5.3 工具调用（Function Calling）</h2>
+<p>Agent 通过 Function Calling 调用以下工具完成数值计算与结构化生成：</p>
+<table>
+  <tr><th>工具名</th><th class="left">功能</th></tr>
+  <tr><td>calc_tdee</td><td class="left">按性别、年龄、身高、体重、活动系数计算每日总消耗</td></tr>
+  <tr><td>calc_bmi</td><td class="left">计算 BMI、体脂率并判定区间</td></tr>
+  <tr><td>heart_rate_zone</td><td class="left">按储备心率法计算燃脂/有氧/无氧目标心率区间</td></tr>
+  <tr><td>training_volume</td><td class="left">计算训练容量与渐进负荷</td></tr>
+  <tr><td>fitness_score</td><td class="left">按体测标准评定达标情况</td></tr>
+  <tr><td>plan_generator</td><td class="left">整合评估结果，生成结构化运动处方（FITT-VP）</td></tr>
+</table>
+
+<h2>5.4 任务流程编排</h2>
+<p>Agent 将单次「生成处方」编排为多步任务闭环：</p>
+<ol>
+  <li><strong>信息评估</strong>：采集身高/体重/年龄/目标/运动史/禁忌；</li>
+  <li><strong>安全筛查</strong>：PAR-Q+ 与旧伤、慢病排查，识别高风险项；</li>
+  <li><strong>目标设定</strong>：SMART 化目标 + 合理期望管理；</li>
+  <li><strong>处方生成</strong>：RAG 取知识 + 工具算数值 + 编排成 FITT-VP 计划；</li>
+  <li><strong>执行打卡</strong>：每日记录训练、体重、围度、体测成绩；</li>
+  <li><strong>动态调整</strong>：基于反馈数据重算，形成「评估—计划—追踪—调整」闭环。</li>
+</ol>
+
+<h2>5.5 智能体与系统的集成方式</h2>
+<p>智能体作为独立编排层嵌入分层架构，与软件系统的集成要点：</p>
+<ul>
+  <li><strong>接口集成</strong>：应用层服务通过内部 API 调用 Agent 编排器，编排器统一调度 RAG、工具与 LLM，业务逻辑与模型能力解耦；</li>
+  <li><strong>领域知识集成</strong>：知识库服务维护领域文档与向量索引，RAG 检索器读取向量库，保证回答有据可依、可溯源；</li>
+  <li><strong>工具集成</strong>：六个领域计算工具注册于 ToolRegistry，由编排器按需调度，计算结果回流至处方生成与数据层；</li>
+  <li><strong>任务流程集成</strong>：多步闭环流程以编排器为核心，贯穿「评估→筛查→目标→处方→打卡→调整」全生命周期，并与数据层的计划、打卡、会话等实体一一对应。</li>
+</ul>
+<div class="tip">领域知识、工具调用与任务流程在系统中的作用，可在图 7-1（时序图）与图 7-2（协作图）中进一步查看对象间的消息传递与协作关系。</div>
+
+<!-- ===================== 6 类图 ===================== -->
+<div class="pagebreak"></div>
+<h1>6 系统结构设计（类图）</h1>
+<p>类图描述系统静态结构。上半部分为<strong>领域实体类</strong>（与数据库表一一对应，详见《数据库设计说明书》），下半部分为<strong>服务/编排类</strong>（Agent 编排层核心）。</p>
+<div class="figure-wide">
+  <img src="../diagrams/svg/04_类图.svg">
+  <div class="figcap">图 6-1 系统类图</div>
+</div>
+
+<h2>6.1 关键类说明</h2>
+<table>
+  <tr><th>类</th><th class="left">职责</th></tr>
+  <tr><td>User</td><td class="left">用户（健身用户/管理员），含角色字段</td></tr>
+  <tr><td>HealthProfile</td><td class="left">健康档案，含 PAR-Q 筛查结果与禁忌</td></tr>
+  <tr><td>ExercisePlan / PlanItem</td><td class="left">运动处方及其训练条目（FITT-VP 结构）</td></tr>
+  <tr><td>WorkoutLog</td><td class="left">训练打卡与身体数据记录</td></tr>
+  <tr><td>ChatSession / ChatMessage</td><td class="left">智能体会话与消息，含引用出处</td></tr>
+  <tr><td>KnowledgeDoc / KnowledgeChunk</td><td class="left">领域知识文档及其向量切片</td></tr>
+  <tr><td>Action / ToolLog / AgentConfig</td><td class="left">动作库、工具调用日志、Agent 配置</td></tr>
+  <tr><td>AgentOrchestrator</td><td class="left">编排器，驱动多步任务闭环，调度工具与检索</td></tr>
+  <tr><td>RAGService / ToolRegistry</td><td class="left">检索服务、工具注册与执行</td></tr>
+</table>
+
+<!-- ===================== 7 时序与协作 ===================== -->
+<div class="pagebreak"></div>
+<h1>7 核心流程时序与协作设计</h1>
+
+<h2>7.1 时序图（运动处方生成）</h2>
+<p>时序图描述最重要的算法模块——「运动处方生成」中，各对象间随时间展开的消息交互：</p>
+<div class="figure-wide">
+  <img src="../diagrams/svg/05_时序图.svg">
+  <div class="figcap">图 7-1 运动处方生成时序图</div>
+</div>
+
+<h2>7.2 协作图（对象协作关系）</h2>
+<p>协作图强调对象之间的结构关系与编号消息传递：</p>
+<div class="figure-wide">
+  <img src="../diagrams/svg/06_协作图.svg">
+  <div class="figcap">图 7-2 对象协作图</div>
+</div>
+
+<!-- ===================== 8 接口设计 ===================== -->
+<div class="pagebreak"></div>
+<h1>8 接口设计</h1>
+
+<h2>8.1 用户接口</h2>
+<p>用户接口以 Web 页面承载，主要包括：用户端「健康档案与评估」「处方生成」「智能体对话」「打卡与进度」页面，以及管理端「用户管理」「知识库管理」「Agent 配置」「内容审核」「数据统计」页面。界面原型详见原型设计展示（在线链接见团队博客）。</p>
+
+<h2>8.2 外部接口</h2>
+<table>
+  <tr><th>接口</th><th class="left">说明</th></tr>
+  <tr><td>LLM API</td><td class="left">通过统一 LLM 接入层调用可替换模型，输入提示词 + 上下文 + 工具定义，输出文本/工具调用请求</td></tr>
+  <tr><td>向量库</td><td class="left">写入知识切片向量、按相似度检索 Top-K 片段</td></tr>
+  <tr><td>对象存储</td><td class="left">课件、动作图片上传与读取</td></tr>
+</table>
+
+<h2>8.3 内部接口（RESTful API 示例）</h2>
+<table>
+  <tr><th>方法</th><th>路径</th><th class="left">说明</th></tr>
+  <tr><td>POST</td><td>/api/auth/register</td><td class="left">用户注册</td></tr>
+  <tr><td>POST</td><td>/api/profile/assess</td><td class="left">提交健康档案与 PAR-Q 筛查</td></tr>
+  <tr><td>POST</td><td>/api/plan/generate</td><td class="left">生成运动处方（触发 Agent 编排）</td></tr>
+  <tr><td>POST</td><td>/api/chat/ask</td><td class="left">智能体问答（WebSocket 流式）</td></tr>
+  <tr><td>POST</td><td>/api/log/checkin</td><td class="left">训练打卡</td></tr>
+  <tr><td>GET</td><td>/api/progress/{userId}</td><td class="left">进度曲线数据</td></tr>
+  <tr><td>POST</td><td>/api/admin/knowledge</td><td class="left">知识库条目维护（管理端）</td></tr>
+</table>
+
+<!-- ===================== 9 运行设计 ===================== -->
+<div class="pagebreak"></div>
+<h1>9 运行设计</h1>
+<h2>9.1 运行模块组合</h2>
+<p>系统按「用户端链路」与「管理端链路」组合运行：用户端链路为「表现层→接口层→用户/计划/追踪服务→Agent 编排层→数据层」；管理端链路为「表现层→接口层→知识库/管理服务→数据层」，管理端仅在对知识库切片、Agent 配置时与编排层交互。</p>
+<h2>9.2 运行控制</h2>
+<ul>
+  <li>智能体对话采用流式推送，前端边接收边渲染；</li>
+  <li>工具调用由编排器按 LLM 返回的调用意图依次执行，失败即重试或降级；</li>
+  <li>处方生成受并发与限流控制，Redis 缓存热点会话。</li>
+</ul>
+<h2>9.3 运行时间</h2>
+<p>处方生成端到端响应目标 &lt; 10 秒；RAG 检索 &lt; 1 秒；工具计算 &lt; 0.5 秒；打卡写入 &lt; 0.3 秒。</p>
+
+<!-- ===================== 10 出错处理 ===================== -->
+<div class="pagebreak"></div>
+<h1>10 出错处理与安全设计</h1>
+<table>
+  <tr><th>类别</th><th class="left">措施</th></tr>
+  <tr><td>出错信息</td><td class="left">统一错误码与友好提示；网络失败、模型超时给出明确重试引导</td></tr>
+  <tr><td>补救措施</td><td class="left">工具/模型调用失败自动重试 2 次后降级为静态提示；处方生成失败回滚事务</td></tr>
+  <tr><td>安全边界</td><td class="left">PAR-Q 高风险项强制引导就医；问答涉及诊断一律不越界；全程标注「非医疗建议」</td></tr>
+  <tr><td>数据安全</td><td class="left">健康数据加密存储、最小化收集；接口鉴权（JWT）与权限分级</td></tr>
+  <tr><td>系统维护</td><td class="left">日志可溯源（ToolLog 记录工具调用入参/出参）；知识库版本可回滚</td></tr>
+</table>
+
+<!-- ===================== 11 尚待解决 ===================== -->
+<h1>11 尚待解决的问题</h1>
+<ul>
+  <li>「非医疗建议」边界的自动化识别精度需在测试阶段持续调优；</li>
+  <li>运动处方安全性的多模型对比评测尚未完成，需建立评估集；</li>
+  <li>移动端原生体验（如设备健康数据同步）作为后续迭代方向，MVP 阶段以 Web 响应式为主。</li>
+</ul>
+
+</body>
+</html>
