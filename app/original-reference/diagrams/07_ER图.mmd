@@ -1,0 +1,97 @@
+erDiagram
+    USER ||--|| HEALTH_PROFILE : "1:1 拥有"
+    USER ||--o{ EXERCISE_PLAN : "1:N 生成"
+    EXERCISE_PLAN ||--o{ PLAN_ITEM : "1:N 包含"
+    USER ||--o{ WORKOUT_LOG : "1:N 打卡"
+    PLAN_ITEM ||--o{ WORKOUT_LOG : "1:N 对应"
+    USER ||--o{ CHAT_SESSION : "1:N 发起"
+    CHAT_SESSION ||--o{ CHAT_MESSAGE : "1:N 包含"
+    CHAT_MESSAGE ||--o{ TOOL_LOG : "1:N 触发"
+    KNOWLEDGE_DOC ||--o{ KNOWLEDGE_CHUNK : "1:N 切片"
+    PLAN_ITEM }o--o{ ACTION : "M:N 选用动作"
+
+    USER {
+        bigint id PK
+        varchar username
+        varchar password_hash
+        varchar role
+        varchar nickname
+        timestamp created_at
+    }
+    HEALTH_PROFILE {
+        bigint id PK
+        bigint user_id FK
+        int age
+        varchar gender
+        numeric height_cm
+        numeric weight_kg
+        text goal
+        text injury_notes
+        text parq_result
+    }
+    EXERCISE_PLAN {
+        bigint id PK
+        bigint user_id FK
+        jsonb fitt_vp
+        varchar status
+        timestamp generated_at
+    }
+    PLAN_ITEM {
+        bigint id PK
+        bigint plan_id FK
+        varchar type
+        text detail
+        varchar intensity
+    }
+    WORKOUT_LOG {
+        bigint id PK
+        bigint user_id FK
+        bigint plan_item_id FK
+        numeric weight_kg
+        text note
+        timestamp log_at
+    }
+    CHAT_SESSION {
+        bigint id PK
+        bigint user_id FK
+        varchar title
+        timestamp created_at
+    }
+    CHAT_MESSAGE {
+        bigint id PK
+        bigint session_id FK
+        varchar role
+        text content
+        text citations
+    }
+    KNOWLEDGE_DOC {
+        bigint id PK
+        varchar title
+        varchar source
+        varchar category
+    }
+    KNOWLEDGE_CHUNK {
+        bigint id PK
+        bigint doc_id FK
+        text content
+        vector embedding
+    }
+    ACTION {
+        bigint id PK
+        varchar name
+        varchar muscle_group
+        text contraindication
+    }
+    TOOL_LOG {
+        bigint id PK
+        bigint message_id FK
+        varchar tool_name
+        jsonb args
+        jsonb result
+    }
+    AGENT_CONFIG {
+        bigint id PK
+        text system_prompt
+        varchar model
+        text guardrails
+    }

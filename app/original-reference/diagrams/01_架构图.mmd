@@ -1,0 +1,45 @@
+flowchart TB
+    subgraph PRES["表现层 Presentation"]
+        direction LR
+        UWEB["用户端 Web App<br/>Vue 3 · 响应式 · 移动端友好"]
+        AWEB["管理端 Web App<br/>Vue 3 + Element Plus"]
+    end
+
+    subgraph GW["接口层 API Gateway"]
+        API["RESTful API ｜ WebSocket（对话流式输出）"]
+    end
+
+    subgraph APP["应用层 Application"]
+        direction LR
+        US["用户服务<br/>认证·档案·评估"]
+        PS["计划服务<br/>处方生成·动态调整"]
+        TS["追踪服务<br/>打卡·进度曲线"]
+        KS["知识库服务<br/>文档·动作库"]
+        MS["管理服务<br/>用户·审核·统计"]
+    end
+
+    subgraph AGENT["Agent 编排层 Agent Orchestration"]
+        direction LR
+        ORCH["Agent 编排器<br/>流程编排 · 多步闭环"]
+        RAG["RAG 检索<br/>向量召回 · 出处标注"]
+        TOOL["工具调度<br/>Function Calling"]
+        MEM["会话记忆<br/>多轮上下文"]
+        LLM["LLM 接入层<br/>可替换模型 API"]
+    end
+
+    subgraph DATA["数据层 Data"]
+        direction LR
+        PGSQL[("PostgreSQL<br/>业务数据")]
+        VEC[("向量库<br/>pgvector / Milvus")]
+        REDIS[("Redis<br/>会话缓存")]
+        OSS[("对象存储<br/>课件 · 动作图片")]
+    end
+
+    PRES --> GW --> APP --> AGENT --> DATA
+    KS --> RAG
+    PS --> TOOL
+    ORCH --> RAG
+    ORCH --> TOOL
+    ORCH --> MEM
+    ORCH --> LLM
+    TS --> PGSQL

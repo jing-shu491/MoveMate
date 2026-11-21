@@ -1,0 +1,29 @@
+sequenceDiagram
+    autonumber
+    actor U as 健身用户
+    participant F as 前端 Vue
+    participant O as Agent 编排器
+    participant R as RAG 服务
+    participant T as 工具执行器
+    participant L as LLM
+    participant D as 数据库
+
+    U->>F: 填写健康档案与目标
+    F->>O: POST /plan/generate
+    O->>T: 执行安全筛查 PAR-Q
+    T-->>O: 筛查结果
+    alt 筛查出高风险
+        O-->>F: 提示就医，终止生成
+        F-->>U: 展示就医建议
+    else 筛查通过
+        O->>R: 检索领域知识 query
+        R-->>O: 相关片段 + 出处
+        O->>T: 计算 TDEE / BMI / 心率区间
+        T-->>O: 计算结果
+        O->>L: 生成 FITT-VP 处方
+        L-->>O: 结构化处方文本
+        O->>D: 保存计划与工具日志
+        D-->>O: 保存成功
+        O-->>F: 返回结构化处方
+        F-->>U: 展示处方卡片
+    end

@@ -1,0 +1,2 @@
+# Optional native desktop shell (Windows/macOS). Browser preview needs no third-party package.
+pywebview==6.2.1

@@ -1,0 +1,47 @@
+@page { size: A4; margin: 20mm 17mm 18mm; }
+@page wide { size: A4 landscape; margin: 14mm 14mm 12mm; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: "Microsoft YaHei", "SimSun", sans-serif; color: #1f2937; font-size: 10.5pt; line-height: 1.75; }
+
+/* ===== 封面 ===== */
+.cover { page-break-after: always; display: block; text-align: center; padding-top: 90mm; }
+.cover .doc-type { font-size: 15pt; letter-spacing: 2mm; color: #6b7280; }
+.cover h1 { font-size: 26pt; margin: 14mm 0 8mm; line-height: 1.4; }
+.cover .sub { font-size: 12pt; color: #4b5563; margin-bottom: 24mm; }
+.cover .meta { display: inline-block; text-align: left; font-size: 11pt; line-height: 2.2; color: #374151; }
+.cover .meta b { display: inline-block; min-width: 30mm; }
+
+/* ===== 修订记录 / 表格 ===== */
+table { border-collapse: collapse; width: 100%; margin: 3mm 0 5mm; font-size: 9.5pt; }
+th, td { border: 1px solid #cbd5e1; padding: 2.2mm 3mm; text-align: left; vertical-align: top; }
+th { background: #eef2f7; font-weight: 600; }
+table.grid td { text-align: center; }
+table.grid td.left, table.grid th.left { text-align: left; }
+
+/* ===== 标题层级 ===== */
+h1 { font-size: 16pt; border-bottom: 2px solid #2563eb; padding-bottom: 2mm; margin: 8mm 0 4mm; color: #111827; }
+h2 { font-size: 13pt; margin: 6mm 0 3mm; color: #111827; }
+h3 { font-size: 11.5pt; margin: 4.5mm 0 2.5mm; color: #1f2937; }
+h4 { font-size: 10.5pt; margin: 3.5mm 0 2mm; color: #374151; }
+p { margin: 2mm 0; text-align: justify; }
+ul, ol { margin: 2mm 0 2mm 6mm; padding: 0; }
+li { margin: 1.2mm 0; }
+
+/* ===== 图 ===== */
+.figure { margin: 4mm 0 6mm; text-align: center; }
+.figure img { max-width: 100%; height: auto; border: 1px solid #e5e7eb; padding: 2mm; background: #fff; }
+.figcap { font-size: 9.5pt; color: #4b5563; text-align: center; margin-top: 1.5mm; }
+
+/* 横版页（宽图） */
+.figure-wide { page: wide; margin: 4mm 0 6mm; text-align: center; }
+.figure-wide img { max-width: 100%; max-height: 168mm; height: auto; border: 1px solid #e5e7eb; padding: 2mm; background: #fff; }
+
+/* ===== 其他 ===== */
+.code { font-family: "Consolas", "Courier New", monospace; font-size: 9pt; background: #f4f6f8; border: 1px solid #e2e8f0; padding: 2mm 3mm; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+.note { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 2.5mm 3mm; margin: 3mm 0; font-size: 9.5pt; color: #78350f; }
+.tip { background: #eff6ff; border-left: 3px solid #3b82f6; padding: 2.5mm 3mm; margin: 3mm 0; font-size: 9.5pt; color: #1e3a8a; }
+.pagebreak { page-break-before: always; }
+.term { font-weight: 600; color: #111827; }
+.abbr { font-weight: 600; }

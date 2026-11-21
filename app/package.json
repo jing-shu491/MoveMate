@@ -1,0 +1,1 @@
+{"name":"movemate-local","version":"3.2.0","private":true,"type":"module","scripts":{"test":"node tests/domain.test.js","test:ui":"node tests/e2e.mjs","start":"python3 serve.py"},"devDependencies":{"playwright":"^1.65.1"}}

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>跃动MoveMate 数据库设计说明书</title>
+<link rel="stylesheet" href="doc-style.css">
+</head>
+<body>
+
+<!-- ===================== 封面 ===================== -->
+<div class="cover">
+  <div class="doc-type">软 件 设 计 文 档</div>
+  <h1>跃动 MoveMate<br>数据库设计说明书</h1>
+  <div class="sub">面向健身入门人群的个性化运动计划智能体（Web 应用）</div>
+  <div class="meta">
+    <div><b>文档编号</b>：MoveMate-DBD-002</div>
+    <div><b>项目名称</b>：跃动 MoveMate · 个性化运动计划智能体</div>
+    <div><b>团队名称</b>：跃动 MoveMate</div>
+    <div><b>文档版本</b>：V1.0</div>
+    <div><b>编写日期</b>：2026 年 11 月</div>
+    <div><b>密　　级</b>：内部</div>
+  </div>
+</div>
+
+<!-- ===================== 修订记录 ===================== -->
+<h1>修订记录</h1>
+<table>
+  <tr><th>版本</th><th>日期</th><th>修订说明</th><th>修订人</th><th>审核人</th></tr>
+  <tr><td>V0.1</td><td>2026-10-26</td><td>初稿：概念模型与实体梳理</td><td>（待填）</td><td>（待填）</td></tr>
+  <tr><td>V0.9</td><td>2026-11-05</td><td>补充关系模型、ORM 映射、物理设计</td><td>（待填）</td><td>（待填）</td></tr>
+  <tr><td>V1.0</td><td>2026-11-08</td><td>评审定稿</td><td>（待填）</td><td>（待填）</td></tr>
+</table>
+
+<!-- ===================== 目录 ===================== -->
+<div class="pagebreak"></div>
+<h1>目录</h1>
+<ul>
+  <li>1 引言</li>
+  <li>2 数据库总体设计</li>
+  <li>3 概念结构设计（ER 图）</li>
+  <li>4 逻辑结构设计（关系数据模型）</li>
+  <li>5 对象关系映射（ORM）</li>
+  <li>6 物理结构设计</li>
+  <li>7 领域知识与交互记录存储设计</li>
+  <li>8 数据安全与备份</li>
+  <li>附录 A 建表 SQL（节选）</li>
+</ul>
+
+<!-- ===================== 1 引言 ===================== -->
+<div class="pagebreak"></div>
+<h1>1 引言</h1>
+
+<h2>1.1 编写目的</h2>
+<p>本文档是《跃动 MoveMate》软件系统的数据库设计说明书，描述系统的概念结构（ER 图）、逻辑结构（关系数据模型）、对象关系映射（ORM）以及物理存储方案。文档遵循《数据库设计说明书》国标规范文本结构，面向课程评审教师、助教与项目组开发人员，作为数据库建模与实现的依据。</p>
+
+<h2>1.2 术语与缩写定义</h2>
+<table class="grid">
+  <tr><th>缩写 / 术语</th><th class="left">全称与说明</th></tr>
+  <tr><td class="abbr">ER</td><td class="left">Entity-Relationship，实体-关系模型，用于概念结构设计。</td></tr>
+  <tr><td class="abbr">ORM</td><td class="left">Object-Relational Mapping，对象关系映射，将实体类映射到库表。</td></tr>
+  <tr><td class="abbr">PK / FK</td><td class="left">Primary Key 主键 / Foreign Key 外键。</td></tr>
+  <tr><td class="abbr">RAG</td><td class="left">Retrieval-Augmented Generation，检索增强生成，依赖向量检索。</td></tr>
+  <tr><td class="abbr">JSONB</td><td class="left">PostgreSQL 二进制 JSON 类型，适合存储结构化处方。</td></tr>
+  <tr><td class="abbr">FITT-VP</td><td class="left">运动处方六要素（频率/强度/时间/类型/总量/进阶）。</td></tr>
+  <tr><td class="abbr">3NF</td><td class="left">Third Normal Form，第三范式。</td></tr>
+</table>
+
+<h2>1.3 参考资料</h2>
+<ul>
+  <li>《跃动 MoveMate 系统设计说明书》（本文档的配套设计文档）；</li>
+  <li>《跃动 MoveMate 选题报告与需求分析》（第一次团队作业）；</li>
+  <li>PostgreSQL 14 官方文档（JSONB、pgvector 扩展）。</li>
+</ul>
+
+<!-- ===================== 2 总体设计 ===================== -->
+<div class="pagebreak"></div>
+<h1>2 数据库总体设计</h1>
+
+<h2>2.1 设计目标与原则</h2>
+<ul>
+  <li><strong>一致性</strong>：以领域模型为中心，业务实体与库表一一对应，保证各模块数据口径统一；</li>
+  <li><strong>完整性</strong>：主键、外键、唯一约束、检查约束齐备，保证数据质量；</li>
+  <li><strong>规范化</strong>：关系模式达到 3NF，消除冗余；对高频变动的处方结构使用 JSONB 适度反规范化，兼顾查询性能；</li>
+  <li><strong>可扩展</strong>：模型、知识库、工具均可替换，schema 预留扩展字段；</li>
+  <li><strong>安全</strong>：健康数据加密、最小化收集、权限分级。</li>
+</ul>
+
+<h2>2.2 数据库选型</h2>
+<p>主数据库选用 <strong>PostgreSQL 14+</strong>，并启用 <strong>pgvector</strong> 扩展，实现「业务数据 + 向量检索」一体化：</p>
+<table>
+  <tr><th>存储</th><th>技术</th><th class="left">用途</th></tr>
+  <tr><td>业务数据库</td><td>PostgreSQL</td><td class="left">用户、档案、处方、打卡、会话、知识库、日志</td></tr>
+  <tr><td>向量库</td><td>pgvector（同库扩展）</td><td class="left">知识切片向量，供 RAG 相似度检索</td></tr>
+  <tr><td>缓存</td><td>Redis</td><td class="left">会话缓存、热点数据、限流</td></tr>
+  <tr><td>对象存储</td><td>OSS</td><td class="left">课件、动作图片等大文件（库中仅存 URL）</td></tr>
+</table>
+
+<h2>2.3 存储架构</h2>
+<p>分层数据流：业务数据（PostgreSQL）承载系统状态；领域知识经切片后以「文档元数据 + 切片向量」存于 PostgreSQL/pgvector，供 Agent 检索；会话与工具调用记录落库，支撑审计与可溯源；大文件走对象存储，库中仅存引用地址。</p>
+
+<!-- ===================== 3 ER 图 ===================== -->
+<div class="pagebreak"></div>
+<h1>3 概念结构设计（ER 图）</h1>
+
+<h2>3.1 ER 图</h2>
+<div class="figure-wide">
+  <img src="../diagrams/svg/07_ER图.svg">
+  <div class="figcap">图 3-1 跃动 MoveMate 实体关系图（ER 图）</div>
+</div>
+
+<h2>3.2 实体与关系说明</h2>
+<table>
+  <tr><th>实体</th><th class="left">含义</th><th>关系（基数）</th></tr>
+  <tr><td>USER</td><td class="left">用户（健身用户/管理员）</td><td>1:1 拥有 HEALTH_PROFILE</td></tr>
+  <tr><td>HEALTH_PROFILE</td><td class="left">健康档案与评估结果</td><td>1:1 属于 USER</td></tr>
+  <tr><td>EXERCISE_PLAN</td><td class="left">运动处方</td><td>USER 1:N 生成；1:N 包含 PLAN_ITEM</td></tr>
+  <tr><td>PLAN_ITEM</td><td class="left">处方训练条目</td><td>M:N 选用 ACTION</td></tr>
+  <tr><td>WORKOUT_LOG</td><td class="left">打卡与身体数据记录</td><td>USER 1:N、PLAN_ITEM 1:N</td></tr>
+  <tr><td>CHAT_SESSION / CHAT_MESSAGE</td><td class="left">智能体会话与消息</td><td>USER 1:N、SESSION 1:N</td></tr>
+  <tr><td>KNOWLEDGE_DOC / KNOWLEDGE_CHUNK</td><td class="left">领域知识文档与向量切片</td><td>1:N 切片</td></tr>
+  <tr><td>ACTION</td><td class="left">动作库字典</td><td>M:N 关联 PLAN_ITEM</td></tr>
+  <tr><td>TOOL_LOG</td><td class="left">工具调用日志</td><td>CHAT_MESSAGE 1:N 触发</td></tr>
+  <tr><td>AGENT_CONFIG</td><td class="left">Agent 配置（单例）</td><td>独立配置表</td></tr>
+</table>
+
+<!-- ===================== 4 关系模型 ===================== -->
+<div class="pagebreak"></div>
+<h1>4 逻辑结构设计（关系数据模型）</h1>
+<p>将 ER 图转化为关系模式。命名约定：库表名用<strong>小写下划线</strong>，主键统一为 <span class="code">bigint id</span>，外键统一为 <span class="code">表名_id</span>。下面对每张表列出字段、类型与约束（PK=主键，FK=外键，UQ=唯一，NN=非空）。</p>
+
+<h2>4.1 user（用户表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">用户主键</td></tr>
+  <tr><td>username</td><td>varchar(50)</td><td>UQ, NN</td><td class="left">登录名</td></tr>
+  <tr><td>password_hash</td><td>varchar(255)</td><td>NN</td><td class="left">密码哈希（加密）</td></tr>
+  <tr><td>role</td><td>varchar(20)</td><td>NN</td><td class="left">角色：user / admin</td></tr>
+  <tr><td>nickname</td><td>varchar(50)</td><td></td><td class="left">昵称</td></tr>
+  <tr><td>created_at</td><td>timestamp</td><td>NN</td><td class="left">创建时间</td></tr>
+</table>
+
+<h2>4.2 health_profile（健康档案表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">主键</td></tr>
+  <tr><td>user_id</td><td>bigint</td><td>FK→user, UQ</td><td class="left">所属用户（1:1）</td></tr>
+  <tr><td>age</td><td>int</td><td></td><td class="left">年龄</td></tr>
+  <tr><td>gender</td><td>varchar(10)</td><td></td><td class="left">性别</td></tr>
+  <tr><td>height_cm</td><td>numeric(5,1)</td><td></td><td class="left">身高（cm）</td></tr>
+  <tr><td>weight_kg</td><td>numeric(5,1)</td><td></td><td class="left">体重（kg）</td></tr>
+  <tr><td>goal</td><td>text</td><td></td><td class="left">训练目标</td></tr>
+  <tr><td>injury_notes</td><td>text</td><td></td><td class="left">旧伤/禁忌描述</td></tr>
+  <tr><td>parq_result</td><td>text</td><td></td><td class="left">PAR-Q 筛查结果（JSON）</td></tr>
+</table>
+
+<h2>4.3 exercise_plan（运动处方表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">主键</td></tr>
+  <tr><td>user_id</td><td>bigint</td><td>FK→user, NN</td><td class="left">所属用户</td></tr>
+  <tr><td>fitt_vp</td><td>jsonb</td><td>NN</td><td class="left">FITT-VP 结构化处方</td></tr>
+  <tr><td>status</td><td>varchar(20)</td><td>NN</td><td class="left">状态：draft/active/archived</td></tr>
+  <tr><td>generated_at</td><td>timestamp</td><td>NN</td><td class="left">生成时间</td></tr>
+</table>
+
+<h2>4.4 plan_item（处方条目表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">主键</td></tr>
+  <tr><td>plan_id</td><td>bigint</td><td>FK→exercise_plan, NN</td><td class="left">所属处方</td></tr>
+  <tr><td>type</td><td>varchar(20)</td><td>NN</td><td class="left">类型：有氧/抗阻/柔韧等</td></tr>
+  <tr><td>detail</td><td>text</td><td></td><td class="left">训练细节（动作、组次）</td></tr>
+  <tr><td>intensity</td><td>varchar(50)</td><td></td><td class="left">强度（心率区间/RPE）</td></tr>
+</table>
+
+<h2>4.5 workout_log（打卡记录表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">主键</td></tr>
+  <tr><td>user_id</td><td>bigint</td><td>FK→user, NN</td><td class="left">用户</td></tr>
+  <tr><td>plan_item_id</td><td>bigint</td><td>FK→plan_item</td><td class="left">对应训练条目（可空）</td></tr>
+  <tr><td>weight_kg</td><td>numeric(5,1)</td><td></td><td class="left">当日体重</td></tr>
+  <tr><td>note</td><td>text</td><td></td><td class="left">训练感受备注</td></tr>
+  <tr><td>log_at</td><td>timestamp</td><td>NN</td><td class="left">打卡时间</td></tr>
+</table>
+
+<h2>4.6 chat_session / chat_message（会话与消息表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">会话主键（chat_session）</td></tr>
+  <tr><td>user_id</td><td>bigint</td><td>FK→user, NN</td><td class="left">发起用户</td></tr>
+  <tr><td>title</td><td>varchar(200)</td><td></td><td class="left">会话标题</td></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">消息主键（chat_message）</td></tr>
+  <tr><td>session_id</td><td>bigint</td><td>FK→chat_session, NN</td><td class="left">所属会话</td></tr>
+  <tr><td>role</td><td>varchar(20)</td><td>NN</td><td class="left">user / assistant / tool</td></tr>
+  <tr><td>content</td><td>text</td><td>NN</td><td class="left">消息内容</td></tr>
+  <tr><td>citations</td><td>text</td><td></td><td class="left">引用出处（知识库条目）</td></tr>
+</table>
+
+<h2>4.7 knowledge_doc / knowledge_chunk（知识库表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">文档主键（knowledge_doc）</td></tr>
+  <tr><td>title</td><td>varchar(255)</td><td>NN</td><td class="left">文档标题</td></tr>
+  <tr><td>source</td><td>varchar(255)</td><td></td><td class="left">来源（指南/教材）</td></tr>
+  <tr><td>category</td><td>varchar(50)</td><td></td><td class="left">分类（处方学/强度量化等）</td></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">切片主键（knowledge_chunk）</td></tr>
+  <tr><td>doc_id</td><td>bigint</td><td>FK→knowledge_doc, NN</td><td class="left">所属文档</td></tr>
+  <tr><td>content</td><td>text</td><td>NN</td><td class="left">切片文本</td></tr>
+  <tr><td>embedding</td><td>vector(1024)</td><td>NN</td><td class="left">切片向量（pgvector）</td></tr>
+</table>
+
+<h2>4.8 action（动作库表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">主键</td></tr>
+  <tr><td>name</td><td>varchar(100)</td><td>NN</td><td class="left">动作名称</td></tr>
+  <tr><td>muscle_group</td><td>varchar(50)</td><td></td><td class="left">目标肌群</td></tr>
+  <tr><td>contraindication</td><td>text</td><td></td><td class="left">禁忌与替代动作</td></tr>
+</table>
+
+<h2>4.9 tool_log（工具调用日志表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">主键</td></tr>
+  <tr><td>message_id</td><td>bigint</td><td>FK→chat_message, NN</td><td class="left">触发消息</td></tr>
+  <tr><td>tool_name</td><td>varchar(50)</td><td>NN</td><td class="left">工具名（calc_tdee 等）</td></tr>
+  <tr><td>args</td><td>jsonb</td><td></td><td class="left">入参</td></tr>
+  <tr><td>result</td><td>jsonb</td><td></td><td class="left">出参</td></tr>
+</table>
+
+<h2>4.10 agent_config（Agent 配置表）</h2>
+<table>
+  <tr><th>字段</th><th>类型</th><th>约束</th><th class="left">说明</th></tr>
+  <tr><td>id</td><td>bigint</td><td>PK</td><td class="left">主键（单例）</td></tr>
+  <tr><td>system_prompt</td><td>text</td><td>NN</td><td class="left">系统提示词</td></tr>
+  <tr><td>model</td><td>varchar(50)</td><td>NN</td><td class="left">模型标识（可替换）</td></tr>
+  <tr><td>guardrails</td><td>text</td><td></td><td class="left">安全护栏配置（JSON）</td></tr>
+</table>
+
+<h2>4.11 完整性约束与规范化</h2>
+<ul>
+  <li><strong>实体完整性</strong>：所有表均设自增主键 <span class="code">id</span>；</li>
+  <li><strong>参照完整性</strong>：外键关联 user、exercise_plan、plan_item、chat_session、knowledge_doc 等，删除采用 RESTRICT 或级联策略（如删用户级联删其处方、会话）；</li>
+  <li><strong>用户自定义完整性</strong>：role 取值约束、plan.status 状态枚举、workout_log 数值非负检查；</li>
+  <li><strong>规范化</strong>：实体关系达到 3NF；exercise_plan.fitt_vp 与 tool_log 的入出参采用 JSONB，属可控的反规范化，换取处方结构与工具日志的灵活性。</li>
+</ul>
+
+<!-- ===================== 5 ORM 映射 ===================== -->
+<div class="pagebreak"></div>
+<h1>5 对象关系映射（ORM）</h1>
+<p>实体类与库表的映射关系如下（后端采用 ORM 框架，实体类字段采用驼峰命名，库表采用下划线命名，由 ORM 自动映射）：</p>
+<table>
+  <tr><th>实体类</th><th>库表</th><th class="left">映射说明</th></tr>
+  <tr><td>User</td><td>user</td><td class="left">id↔id, username, passwordHash↔password_hash, role, nickname, createdAt↔created_at</td></tr>
+  <tr><td>HealthProfile</td><td>health_profile</td><td class="left">userId↔user_id（1:1），age, gender, heightCm↔height_cm, weightKg↔weight_kg, goal, injuryNotes↔injury_notes, parqResult↔parq_result</td></tr>
+  <tr><td>ExercisePlan</td><td>exercise_plan</td><td class="left">userId↔user_id, fittVpJson↔fitt_vp（JSONB）, status, generatedAt↔generated_at</td></tr>
+  <tr><td>PlanItem</td><td>plan_item</td><td class="left">planId↔plan_id, type, detail, intensity</td></tr>
+  <tr><td>WorkoutLog</td><td>workout_log</td><td class="left">userId↔user_id, planItemId↔plan_item_id, weightKg↔weight_kg, note, logAt↔log_at</td></tr>
+  <tr><td>ChatSession / ChatMessage</td><td>chat_session / chat_message</td><td class="left">sessionId↔session_id, role, content, citations</td></tr>
+  <tr><td>KnowledgeDoc / KnowledgeChunk</td><td>knowledge_doc / knowledge_chunk</td><td class="left">docId↔doc_id, content, embedding↔vector</td></tr>
+  <tr><td>Action / ToolLog / AgentConfig</td><td>action / tool_log / agent_config</td><td class="left">messageId↔message_id, toolName↔tool_name, args/result↔jsonb</td></tr>
+</table>
+
+<h2>5.1 映射示例（后端实体类）</h2>
+<div class="code">@Entity
+@Table(name = "exercise_plan")
+public class ExercisePlan {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @Column(name = "fitt_vp", columnDefinition = "jsonb")
+    private String fittVpJson;
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "generated_at")
+    private LocalDateTime generatedAt;
+
+    @OneToMany(mappedBy = "plan")
+    private List&lt;PlanItem&gt; items;
+}</div>
+<p class="tip">说明：以 Java JPA 注解为例；若后端采用 Python FastAPI + SQLAlchemy，则用 <span class="code">__tablename__ = "exercise_plan"</span> 与 <span class="code">Column("user_id", ForeignKey("user.id"))</span> 表达等价映射。字段命名规范保持一致。</p>
+
+<!-- ===================== 6 物理设计 ===================== -->
+<div class="pagebreak"></div>
+<h1>6 物理结构设计</h1>
+<h2>6.1 索引设计</h2>
+<table>
+  <tr><th>表</th><th>索引</th><th class="left">说明</th></tr>
+  <tr><td>user</td><td>UQ(username)</td><td class="left">登录唯一性</td></tr>
+  <tr><td>health_profile</td><td>UQ(user_id)</td><td class="left">1:1 快速定位</td></tr>
+  <tr><td>exercise_plan</td><td>idx(user_id, generated_at)</td><td class="left">按用户+时间查历史处方</td></tr>
+  <tr><td>workout_log</td><td>idx(user_id, log_at)</td><td class="left">进度曲线时间序列查询</td></tr>
+  <tr><td>chat_message</td><td>idx(session_id)</td><td class="left">会话内消息查询</td></tr>
+  <tr><td>knowledge_chunk</td><td>IVFFlat/HNSW(embedding)</td><td class="left">pgvector 向量近似检索</td></tr>
+</table>
+
+<h2>6.2 存储与分区</h2>
+<ul>
+  <li>热数据（近 6 个月打卡、会话）常驻；历史数据按月分区归档；</li>
+  <li>knowledge_chunk 向量维度 1024，采用 HNSW 索引平衡召回率与速度；</li>
+  <li>大文件（课件、图片）不入库，存 OSS 并记录 URL。</li>
+</ul>
+
+<!-- ===================== 7 领域知识与交互记录 ===================== -->
+<div class="pagebreak"></div>
+<h1>7 领域知识与交互记录存储设计</h1>
+<p>结合本项目领域 Agent 的特点，对三类关键数据的存储与管理方式说明如下：</p>
+
+<h2>7.1 领域知识（知识库）</h2>
+<ul>
+  <li><strong>结构化组织</strong>：运动科学知识按「文档（knowledge_doc）→ 切片（knowledge_chunk）」两级存储，文档带分类（处方学/强度量化/能量代谢等）与来源；</li>
+  <li><strong>向量化</strong>：切片经嵌入模型生成 1024 维向量，存于 pgvector，供 RAG 相似度检索；</li>
+  <li><strong>出处标注</strong>：检索命中的切片信息写入 chat_message.citations，实现回答可溯源。</li>
+</ul>
+
+<h2>7.2 用户交互记录（会话）</h2>
+<ul>
+  <li>智能体对话以 chat_session（会话）+ chat_message（消息）两级存储，消息含 role、content、citations，支持多轮上下文回放；</li>
+  <li>工具调用过程记入 tool_log（工具名、入参、出参），既支撑审计，也支撑后续的 Agent 行为分析。</li>
+</ul>
+
+<h2>7.3 任务执行结果（处方与追踪）</h2>
+<ul>
+  <li>任务执行结果——运动处方——以 exercise_plan（处方头）+ plan_item（训练条目）存储，FITT-VP 结构存于 jsonb；</li>
+  <li>执行反馈——打卡与身体数据——存于 workout_log，随时间累积形成进度曲线，作为动态调整的依据。</li>
+</ul>
+
+<!-- ===================== 8 安全与备份 ===================== -->
+<h1>8 数据安全与备份</h1>
+<ul>
+  <li><strong>加密</strong>：密码哈希（不可逆）存储；健康敏感字段传输加密、最小化收集；</li>
+  <li><strong>权限</strong>：数据库账号分角色授权，应用侧以 JWT 鉴权 + 行级权限控制；</li>
+  <li><strong>备份</strong>：每日全量 + 增量备份，WAL 归档，保留 7 天，支持时间点恢复（PITR）；</li>
+  <li><strong>审计</strong>：tool_log 与操作日志保留，满足可溯源要求。</li>
+</ul>
+
+<!-- ===================== 附录 ===================== -->
+<div class="pagebreak"></div>
+<h1>附录 A 建表 SQL（节选）</h1>
+<div class="code">CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE "user" (
+    id            BIGSERIAL PRIMARY KEY,
+    username      VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role          VARCHAR(20) NOT NULL DEFAULT 'user',
+    nickname      VARCHAR(50),
+    created_at    TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE health_profile (
+    id           BIGSERIAL PRIMARY KEY,
+    user_id      BIGINT UNIQUE REFERENCES "user"(id) ON DELETE CASCADE,
+    age          INT,
+    gender       VARCHAR(10),
+    height_cm    NUMERIC(5,1),
+    weight_kg    NUMERIC(5,1),
+    goal         TEXT,
+    injury_notes TEXT,
+    parq_result  TEXT
+);
+
+CREATE TABLE exercise_plan (
+    id           BIGSERIAL PRIMARY KEY,
+    user_id      BIGINT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    fitt_vp      JSONB NOT NULL,
+    status       VARCHAR(20) NOT NULL DEFAULT 'active',
+    generated_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE plan_item (
+    id        BIGSERIAL PRIMARY KEY,
+    plan_id   BIGINT NOT NULL REFERENCES exercise_plan(id) ON DELETE CASCADE,
+    type      VARCHAR(20) NOT NULL,
+    detail    TEXT,
+    intensity VARCHAR(50)
+);
+
+CREATE TABLE workout_log (
+    id           BIGSERIAL PRIMARY KEY,
+    user_id      BIGINT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    plan_item_id BIGINT REFERENCES plan_item(id) ON DELETE SET NULL,
+    weight_kg    NUMERIC(5,1),
+    note         TEXT,
+    log_at       TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE knowledge_doc (
+    id       BIGSERIAL PRIMARY KEY,
+    title    VARCHAR(255) NOT NULL,
+    source   VARCHAR(255),
+    category VARCHAR(50)
+);
+
+CREATE TABLE knowledge_chunk (
+    id        BIGSERIAL PRIMARY KEY,
+    doc_id    BIGINT NOT NULL REFERENCES knowledge_doc(id) ON DELETE CASCADE,
+    content   TEXT NOT NULL,
+    embedding vector(1024)
+);
+
+CREATE INDEX idx_chunk_embedding ON knowledge_chunk
+    USING hnsw (embedding vector_cosine_ops);</div>
+
+</body>
+</html>

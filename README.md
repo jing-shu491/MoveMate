@@ -8,16 +8,34 @@
 
 ---
 
+## 可运行版本 MoveMate 3.2
+
+当前可运行源码位于 [`app/`](app/)，是在原型与概要设计之后完成的本地可运行版本：
+
+- Windows 11 x64 原生窗口已实测：本机后端、SQLite、DeepSeek 配置和计划助手页面均可用。
+- 默认接入 DeepSeek 官方 API（`https://api.deepseek.com/v1`，`deepseek-chat`），也保留 OpenAI、Anthropic、Gemini、Ollama 等格式。
+- 38 项领域检查、20 项后端/协议测试、12 项浏览器 E2E 通过。
+- 详细运行方式和验收证据见 [`app/README.md`](app/README.md)、[`app/docs/验收记录.md`](app/docs/验收记录.md)。
+
+> `app/` 不包含 `runtime/`、`node_modules/` 和 Windows 免安装包；浏览器预览直接 `python app/serve.py`，原生窗口先按 `app/requirements-desktop.txt` 安装 `pywebview`。
+
+---
+
 ## 仓库结构
 
 ```
 .
 ├── README.md                        # 本文件
-├── docs/                            # 团队文档
+├── app/                             # MoveMate 3.2 可运行源码、测试与验收文档
+│   ├── backend/                     # 本机后端与 DeepSeek/多协议适配
+│   ├── src/                         # 前端页面、领域规则与交互
+│   ├── tests/                       # 领域、后端与 Playwright 浏览器测试
+│   └── docs/                        # 3.2 系统设计、验收记录与截图
+├── docs/                            # 第二次作业团队文档（历史）
 │   ├── 跃动MoveMate_系统设计说明书.pdf     # 系统设计说明书（含 UML、架构、Agent 集成）
 │   ├── 跃动MoveMate_数据库设计说明书.pdf   # 数据库设计说明书（ER 图、关系模型、ORM）
 │   └── 博客随笔.md                    # 团队博客《原型设计+概要设计》全文
-├── design/                          # 设计图（源文件 + SVG + PNG）
+├── diagrams/                        # 设计图（源文件 + SVG + PNG）
 │   ├── *.mmd                        # Mermaid 源文件（可编辑）
 │   ├── svg/                         # 矢量图
 │   └── png/                         # 位图（博客/PPT 用）
