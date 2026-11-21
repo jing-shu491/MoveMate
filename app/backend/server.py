@@ -69,7 +69,7 @@ class Handler(SimpleHTTPRequestHandler):
                 c=self.server.store.get('config') or {};return self.reply({'config':{k:v for k,v in c.items() if k!='api_key'},'has_key':bool(c.get('api_key')),'formats':FORMATS})
             return self.reply({'error':'接口不存在'},404)
         # Only application assets are public. Never expose backend code, tests or data files.
-        if path not in ('/','/index.html','/favicon.ico') and path not in ('/src/app.js','/src/domain.js','/src/style.css'):
+        if path not in ('/','/index.html','/favicon.ico') and path not in ('/src/app.js','/src/zoom.js','/src/domain.js','/src/style.css'):
             return self.reply({'error':'文件不存在'},404)
         super().do_GET()
     def do_POST(self):

@@ -14,7 +14,8 @@
 
 - Windows 11 x64 原生窗口已实测：本机后端、SQLite、DeepSeek 配置和计划助手页面均可用。
 - 默认接入 DeepSeek 官方 API（`https://api.deepseek.com/v1`，`deepseek-chat`），也保留 OpenAI、Anthropic、Gemini、Ollama 等格式。
-- 38 项领域检查、20 项后端/协议测试、12 项浏览器 E2E 通过。
+- 38 项领域检查、20 项后端/协议测试、17 项浏览器 E2E 通过。
+- 支持 `Ctrl` + 滚轮、`Ctrl` + `+/-`、`Ctrl` + `0` 和右上角控件的页面缩放（80%–200%）。
 - 详细运行方式和验收证据见 [`app/README.md`](app/README.md)、[`app/docs/验收记录.md`](app/docs/验收记录.md)。
 
 > `app/` 不包含 `runtime/`、`node_modules/` 和 Windows 免安装包；浏览器预览直接 `python app/serve.py`，原生窗口先按 `app/requirements-desktop.txt` 安装 `pywebview`。

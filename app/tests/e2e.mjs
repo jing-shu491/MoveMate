@@ -119,6 +119,27 @@ async function main() {
   await page.waitForFunction(() => !document.querySelector('#api-dialog')?.open);
   okay('configuration is saved and the dialog closes', true);
 
+  await page.keyboard.press('Control+=');
+  await page.waitForFunction(() => document.documentElement.style.zoom === '1.1');
+  okay('Ctrl + plus zooms the page in', await page.locator('#zoom-level').innerText() === '110%');
+  await page.screenshot({ path: join(shots, 'zoom-110.png'), fullPage: true });
+  await page.keyboard.press('Control+-');
+  await page.waitForFunction(() => document.documentElement.style.zoom === '1');
+  okay('Ctrl + minus zooms the page out', await page.locator('#zoom-level').innerText() === '100%');
+  await page.evaluate(() => window.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: -120, cancelable: true, bubbles: true })));
+  await page.waitForFunction(() => document.documentElement.style.zoom === '1.1');
+  okay('Ctrl + wheel zooms the page in', await page.locator('#zoom-level').innerText() === '110%');
+  await page.keyboard.press('Control+0');
+  await page.waitForFunction(() => document.documentElement.style.zoom === '1');
+  okay('Ctrl + 0 resets the page zoom', await page.locator('#zoom-level').innerText() === '100%');
+
+  await page.keyboard.press('Control+=');
+  await page.keyboard.press('Control+=');
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForSelector('#zoom-level');
+  okay('page zoom survives a reload', await page.locator('#zoom-level').innerText() === '120%');
+  await page.keyboard.press('Control+0');
+
   await page.click('a[href="#profile"]');
   await page.waitForSelector('#profile-form');
   await page.fill('[name="name"]', '验收用户');
